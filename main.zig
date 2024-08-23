@@ -15,7 +15,7 @@ pub fn main() !void {
     //
     // Read $HOME
     //
-    var home: [*]const u8 = @ptrCast("/home/unknown");
+    var home: [*:0]const u8 = "HOME=/home/unknown";
     outer: for (std.os.environ) |env| {
         const match = "HOME=";
         var i: usize = 0;
@@ -26,19 +26,35 @@ pub fn main() !void {
         }
         if (i != match.len) continue;
 
-        home = env;
+        home = @ptrCast(env);
         break;
     }
 
     //
+    // Concat path to HOME
+    //
+    var filepath_buf: [1024]u8 = undefined;
+    var cont: usize = 0;
+    for (0..filepath_buf.len) |i| {
+        if (home[i] == 0) {
+            cont = i;
+            break;
+        }
+        filepath_buf[i] = home[i];
+    }
+    const rest = "/.config/helix/themes/nigel.toml";
+    mem.copyForwards(u8, filepath_buf[cont..], rest);
+    const filepath = filepath_buf[5..(cont + rest.len)];
+
+    //
     // Open file
     //
-    const file = try fs.openFileAbsolute("/home/nigel/.config/helix/themes/nigel.toml", fs.File.OpenFlags{ .mode = .read_write });
+    const file = try fs.openFileAbsolute(filepath, fs.File.OpenFlags{ .mode = .read_write });
     defer file.close();
     const len = try file.getEndPos();
 
     //
-    // MMAP to read file
+    // MMAP file
     //
     const map_result = os.mmap(null, len, os.PROT.WRITE, os.MAP{ .TYPE = .SHARED }, file.handle, 0);
     if (map_result == -1) {
