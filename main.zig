@@ -13,6 +13,21 @@ pub fn main() !void {
     const rand = prng.random();
 
     //
+    // Read env
+    //
+    var home: [*]const u8 = @ptrCast("/home/unknown");
+    outer: for (std.os.environ) |env| {
+        const match = "HOME=";
+        for (env, 0..match.len) |c, i| {
+            if (c != match[i]) {
+                continue :outer;
+            }
+        }
+
+        home = env;
+    }
+
+    //
     // Open file
     //
     const file = try fs.openFileAbsolute("/home/nigel/.config/helix/themes/nigel.toml", fs.File.OpenFlags{ .mode = .read_write });
