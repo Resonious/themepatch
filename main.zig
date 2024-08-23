@@ -13,18 +13,21 @@ pub fn main() !void {
     const rand = prng.random();
 
     //
-    // Read env
+    // Read $HOME
     //
     var home: [*]const u8 = @ptrCast("/home/unknown");
     outer: for (std.os.environ) |env| {
         const match = "HOME=";
-        for (env, 0..match.len) |c, i| {
-            if (c != match[i]) {
-                continue :outer;
-            }
+        var i: usize = 0;
+        for (env, 0..match.len) |c, _| {
+            if (c == 0) continue :outer;
+            if (c != match[i]) continue :outer;
+            i += 1;
         }
+        if (i != match.len) continue;
 
         home = env;
+        break;
     }
 
     //
